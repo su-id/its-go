@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/getsentry/sentry-go"
 	sentrygin "github.com/getsentry/sentry-go/gin"
@@ -134,6 +135,16 @@ func globalErrorHandler(logger ErrorLogger, isDebugMode bool) HandlerFunc {
 					"data":    data,
 				},
 			)
+		}
+
+		// Skipping send non-fatal error to sentry
+		ignoredErrors := []string{": context canceled", ": broken pipe"}
+
+		for _, e := range ignoredErrors {
+			if strings.HasSuffix(err.Error(), e) {
+				ctx.Abort()
+				return
+			}
 		}
 
 		// if sentry or sentrygin is disabled, this does nothing.
